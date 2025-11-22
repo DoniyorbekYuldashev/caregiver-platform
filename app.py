@@ -134,7 +134,7 @@ async def edit_user(
     return RedirectResponse(url="/users", status_code=303)
 
 
-@app.get("/users/delete/{user_id}")
+@app.api_route("/users/delete/{user_id}", methods=["GET", "POST"])
 async def delete_user(user_id: int):
     db = SessionLocal()
     crud.delete_user(db, user_id)
@@ -183,7 +183,7 @@ async def edit_caregiver(
     return RedirectResponse(url="/caregivers", status_code=303)
 
 
-@app.get("/caregivers/delete/{caregiver_id}")
+@app.api_route("/caregivers/delete/{caregiver_id}", methods=["GET", "POST"])
 async def delete_caregiver(caregiver_id: int):
     db = SessionLocal()
     crud.delete_caregiver(db, caregiver_id)
@@ -226,7 +226,7 @@ async def edit_member(
     return RedirectResponse(url="/members", status_code=303)
 
 
-@app.get("/members/delete/{member_id}")
+@app.api_route("/members/delete/{member_id}", methods=["GET", "POST"])
 async def delete_member(member_id: int):
     db = SessionLocal()
     crud.delete_member(db, member_id)
@@ -271,7 +271,7 @@ async def edit_job(
     return RedirectResponse(url="/jobs", status_code=303)
 
 
-@app.get("/jobs/delete/{job_id}")
+@app.api_route("/jobs/delete/{job_id}", methods=["GET", "POST"])
 async def delete_job(job_id: int):
     db = SessionLocal()
     crud.delete_job(db, job_id)
@@ -323,7 +323,7 @@ async def edit_appointment(
     return RedirectResponse(url="/appointments", status_code=303)
 
 
-@app.get("/appointments/delete/{appointment_id}")
+@app.api_route("/appointments/delete/{appointment_id}", methods=["GET", "POST"])
 async def delete_appointment(appointment_id: int):
     db = SessionLocal()
     crud.delete_appointment(db, appointment_id)
