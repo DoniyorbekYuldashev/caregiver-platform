@@ -15,17 +15,14 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set!")
 
-print(f"Connecting to database...")
-
 # Create engine
 engine = create_engine(DATABASE_URL)
 
-# Create all tables
-try:
-    Base.metadata.create_all(bind=engine)
-    print("Database tables created successfully!")
-except Exception as e:
-    print(f"Error creating tables: {e}")
+print("Dropping existing tables...")
+Base.metadata.drop_all(bind=engine)
+print("Creating fresh tables...")
+Base.metadata.create_all(bind=engine)
+print("Database tables created successfully!")
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
