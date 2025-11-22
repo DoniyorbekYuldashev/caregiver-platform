@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Caregivers - Caregiver Platform{% endblock %}
+
+{% block content %}
+<h2>Caregiver Management</h2>
+
+<button class="btn btn-success" onclick="openModal('createModal')">+ Add New Caregiver</button>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Gender</th>
+            <th>Type</th>
+            <th>Hourly Rate</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for caregiver in caregivers %}
+        <tr>
+            <td>{{ caregiver.caregiver_user_id }}</td>
+            <td>{{ caregiver.user.given_name }} {{ caregiver.user.surname }}</td>
+            <td>{{ caregiver.gender }}</td>
+            <td>{{ caregiver.caregiving_type }}</td>
+            <td>${{ "%.2f"|format(caregiver.hourly_rate) }}</td>
+            <td>
+                <button class="btn btn-primary" onclick="openEditModal({{ caregiver.caregiver_user_id }}, '{{ caregiver.gender }}', '{{ caregiver.caregiving_type }}', {{ caregiver.hourly_rate }})">Edit</button>
+                <form action="/caregivers/delete/{{ caregiver.caregiver_user_id }}" method="post" style="display: inline;" onsubmit="return confirmDelete()">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Create Modal -->
+<div id="createModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('createModal')">&times;</span>
+        <h3>Add New Caregiver</h3>
+        <form action="/caregivers/create" method="post">
+            <div class="form-group">
+                <label>User ID:</label>
+                <select name="caregiver_user_id" required>
+                    <option value="">Select User</option>
+                    {% for user in users %}
+                    <option value="{{ user.user_id }}">{{ user.user_id }} - {{ user.given_name }} {{ user.surname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Gender:</label>
+                <select name="gender" required>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Caregiving Type:</label>
+                <select name="caregiving_type" required>
+                    <option value="babysitter">Babysitter</option>
+                    <option value="elderly_care">Elderly Care</option>
+                    <option value="playmate">Playmate</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Hourly Rate ($):</label>
+                <input type="number" name="hourly_rate" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label>Photo URL:</label>
+                <input type="text" name="photo">
+            </div>
+            <button type="submit" class="btn btn-success">Create</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('editModal')">&times;</span>
+        <h3>Edit Caregiver</h3>
+        <form id="editForm" method="post">
+            <div class="form-group">
+                <label>Gender:</label>
+                <select name="gender" id="edit_gender" required>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Caregiving Type:</label>
+                <select name="caregiving_type" id="edit_type" required>
+                    <option value="babysitter">Babysitter</option>
+                    <option value="elderly_care">Elderly Care</option>
+                    <option value="playmate">Playmate</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Hourly Rate ($):</label>
+                <input type="number" name="hourly_rate" id="edit_rate" step="0.01" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, gender, type, rate) {
+    document.getElementById('editForm').action = '/caregivers/update/' + id;
+    document.getElementById('edit_gender').value = gender;
+    document.getElementById('edit_type').value = type;
+    document.getElementById('edit_rate').value = rate;
+    openModal('editModal');
+}
+</script>
+{% endblock %}

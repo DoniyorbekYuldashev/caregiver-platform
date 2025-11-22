@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Appointments - Caregiver Platform{% endblock %}
+
+{% block content %}
+<h2>Appointment Management</h2>
+
+<button class="btn btn-success" onclick="openModal('createModal')">+ Create Appointment</button>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Caregiver</th>
+            <th>Member</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Hours</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for appt in appointments %}
+        <tr>
+            <td>{{ appt.appointment_id }}</td>
+            <td>{{ appt.caregiver.user.given_name }} {{ appt.caregiver.user.surname }}</td>
+            <td>{{ appt.member.user.given_name }} {{ appt.member.user.surname }}</td>
+            <td>{{ appt.appointment_date.strftime('%Y-%m-%d') }}</td>
+            <td>{{ appt.appointment_time }}</td>
+            <td>{{ "%.2f"|format(appt.work_hours) }}</td>
+            <td><span style="padding: 5px 10px; background: {% if appt.status == 'confirmed' %}#28a745{% elif appt.status == 'completed' %}#007bff{% elif appt.status == 'pending' %}#ffc107{% else %}#dc3545{% endif %}; color: white; border-radius: 5px;">{{ appt.status }}</span></td>
+            <td>
+                <button class="btn btn-primary" onclick="openEditModal({{ appt.appointment_id }}, '{{ appt.appointment_date.strftime('%Y-%m-%d') }}', '{{ appt.appointment_time }}', {{ appt.work_hours }}, '{{ appt.status }}')">Edit</button>
+                <form action="/appointments/delete/{{ appt.appointment_id }}" method="post" style="display: inline;" onsubmit="return confirmDelete()">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Create Modal -->
+<div id="createModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('createModal')">&times;</span>
+        <h3>Create Appointment</h3>
+        <form action="/appointments/create" method="post">
+            <div class="form-group">
+                <label>Caregiver:</label>
+                <select name="caregiver_user_id" required>
+                    <option value="">Select Caregiver</option>
+                    {% for caregiver in caregivers %}
+                    <option value="{{ caregiver.caregiver_user_id }}">{{ caregiver.user.given_name }} {{ caregiver.user.surname }} ({{ caregiver.caregiving_type }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Member:</label>
+                <select name="member_user_id" required>
+                    <option value="">Select Member</option>
+                    {% for member in members %}
+                    <option value="{{ member.member_user_id }}">{{ member.user.given_name }} {{ member.user.surname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date:</label>
+                <input type="date" name="appointment_date" required>
+            </div>
+            <div class="form-group">
+                <label>Time:</label>
+                <input type="time" name="appointment_time" required>
+            </div>
+            <div class="form-group">
+                <label>Work Hours:</label>
+                <input type="number" name="work_hours" step="0.5" required>
+            </div>
+            <div class="form-group">
+                <label>Status:</label>
+                <select name="status" required>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="completed">Completed</option>
+                    <option value="declined">Declined</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success">Create</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('editModal')">&times;</span>
+        <h3>Edit Appointment</h3>
+        <form id="editForm" method="post">
+            <div class="form-group">
+                <label>Date:</label>
+                <input type="date" name="appointment_date" id="edit_date" required>
+            </div>
+            <div class="form-group">
+                <label>Time:</label>
+                <input type="time" name="appointment_time" id="edit_time" required>
+            </div>
+            <div class="form-group">
+                <label>Work Hours:</label>
+                <input type="number" name="work_hours" id="edit_hours" step="0.5" required>
+            </div>
+            <div class="form-group">
+                <label>Status:</label>
+                <select name="status" id="edit_status" required>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="completed">Completed</option>
+                    <option value="declined">Declined</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, date, time, hours, status) {
+    document.getElementById('editForm').action = '/appointments/update/' + id;
+    document.getElementById('edit_date').value = date;
+    document.getElementById('edit_time').value = time;
+    document.getElementById('edit_hours').value = hours;
+    document.getElementById('edit_status').value = status;
+    openModal('editModal');
+}
+</script>
+{% endblock %}

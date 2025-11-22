@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Users - Caregiver Platform{% endblock %}
+
+{% block content %}
+<h2>User Management</h2>
+
+<button class="btn btn-success" onclick="openModal('createModal')">+ Add New User</button>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>City</th>
+            <th>Phone</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.user_id }}</td>
+            <td>{{ user.given_name }} {{ user.surname }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.city }}</td>
+            <td>{{ user.phone_number }}</td>
+            <td>
+                <button class="btn btn-primary" onclick="openEditModal({{ user.user_id }}, '{{ user.given_name }}', '{{ user.surname }}', '{{ user.city }}', '{{ user.phone_number }}')">Edit</button>
+                <form action="/users/delete/{{ user.user_id }}" method="post" style="display: inline;" onsubmit="return confirmDelete('Delete user {{ user.given_name }} {{ user.surname }}?')">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Create Modal -->
+<div id="createModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('createModal')">&times;</span>
+        <h3>Add New User</h3>
+        <form action="/users/create" method="post">
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label>First Name:</label>
+                <input type="text" name="given_name" required>
+            </div>
+            <div class="form-group">
+                <label>Last Name:</label>
+                <input type="text" name="surname" required>
+            </div>
+            <div class="form-group">
+                <label>City:</label>
+                <input type="text" name="city" required>
+            </div>
+            <div class="form-group">
+                <label>Phone:</label>
+                <input type="text" name="phone_number" required>
+            </div>
+            <div class="form-group">
+                <label>Profile Description:</label>
+                <textarea name="profile_description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-success">Create</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('editModal')">&times;</span>
+        <h3>Edit User</h3>
+        <form id="editForm" method="post">
+            <div class="form-group">
+                <label>First Name:</label>
+                <input type="text" name="given_name" id="edit_given_name" required>
+            </div>
+            <div class="form-group">
+                <label>Last Name:</label>
+                <input type="text" name="surname" id="edit_surname" required>
+            </div>
+            <div class="form-group">
+                <label>City:</label>
+                <input type="text" name="city" id="edit_city" required>
+            </div>
+            <div class="form-group">
+                <label>Phone:</label>
+                <input type="text" name="phone_number" id="edit_phone" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, given_name, surname, city, phone) {
+    document.getElementById('editForm').action = '/users/update/' + id;
+    document.getElementById('edit_given_name').value = given_name;
+    document.getElementById('edit_surname').value = surname;
+    document.getElementById('edit_city').value = city;
+    document.getElementById('edit_phone').value = phone;
+    openModal('editModal');
+}
+</script>
+{% endblock %}
