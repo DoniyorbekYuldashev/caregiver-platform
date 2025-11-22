@@ -1,40 +1,69 @@
-# Part 3: FastAPI application
-
-from fastapi import FastAPI, Request, Depends, Form, HTTPException
+from fastapi import FastAPI, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from datetime import datetime
-from decimal import Decimal
-
-from db import get_session
-from models import User, Caregiver, Member, Job, Appointment
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import os
+from models import Base, User, Caregiver, Member, Job, Appointment
 import crud
 
-app = FastAPI(title="Caregiver Platform", version="1.0.0")
+# Get database URL from environment
+DATABASE_URL = os.getenv("DATABASE_URL")
 
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set!")
+
+print(f"Connecting to database...")
+
+# Create engine
+engine = create_engine(DATABASE_URL)
+
+# Create all tables
+try:
+    Base.metadata.create_all(bind=engine)
+    print("Database tables created successfully!")
+except Exception as e:
+    print(f"Error creating tables: {e}")
+
+# Session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# FastAPI app
+app = FastAPI(title="Caregiver Platform - CSCI 341")
+
+# Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Templates
 templates = Jinja2Templates(directory="templates")
 
 
+# Dependency to get DB session
 def get_db():
-    db = get_session()
+    db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
 
-# HOME & DASHBOARD
-
+# Home page
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, db: Session = Depends(get_db)):
-    users_count = db.query(User).count()
-    caregivers_count = db.query(Caregiver).count()
-    members_count = db.query(Member).count()
-    jobs_count = db.query(Job).count()
-    appointments_count = db.query(Appointment).count()
+async def home(request: Request):
+    db = SessionLocal()
+    try:
+        users_count = db.query(User).count()
+        caregivers_count = db.query(Caregiver).count()
+        members_count = db.query(Member).count()
+        jobs_count = db.query(Job).count()
+        appointments_count = db.query(Appointment).count()
+    except Exception as e:
+        print(f"Error counting: {e}")
+        users_count = caregivers_count = members_count = jobs_count = appointments_count = 0
+    finally:
+        db.close()
 
     return templates.TemplateResponse("index.html", {
         "request": request,
@@ -46,69 +75,79 @@ def home(request: Request, db: Session = Depends(get_db)):
     })
 
 
-# USER ROUTES
-
 @app.get("/users", response_class=HTMLResponse)
-def list_users(request: Request, db: Session = Depends(get_db)):
+async def list_users(request: Request):
+    db = SessionLocal()
     users = crud.get_users(db)
+    db.close()
     return templates.TemplateResponse("users.html", {"request": request, "users": users})
 
 
+@app.get("/users/create", response_class=HTMLResponse)
+async def create_user_form(request: Request):
+    return templates.TemplateResponse("users.html", {"request": request, "users": [], "show_form": True})
+
+
 @app.post("/users/create")
-def create_user(
+async def create_user(
         email: str = Form(...),
         given_name: str = Form(...),
         surname: str = Form(...),
         city: str = Form(...),
         phone_number: str = Form(...),
-        profile_description: str = Form(""),
-        password: str = Form(...),
-        db: Session = Depends(get_db)
+        profile_description: str = Form(...),
+        password: str = Form(...)
 ):
-    from schemas import UserCreate
-    user = UserCreate(
-        email=email,
-        given_name=given_name,
-        surname=surname,
-        city=city,
-        phone_number=phone_number,
-        profile_description=profile_description,
-        password=password
-    )
-    crud.create_user(db, user)
-    return RedirectResponse("/users", status_code=303)
+    db = SessionLocal()
+    crud.create_user(db, email, given_name, surname, city, phone_number, profile_description, password)
+    db.close()
+    return RedirectResponse(url="/users", status_code=303)
 
 
-@app.post("/users/update/{user_id}")
-def update_user(
+@app.get("/users/edit/{user_id}", response_class=HTMLResponse)
+async def edit_user_form(request: Request, user_id: int):
+    db = SessionLocal()
+    user = crud.get_user(db, user_id)
+    users = crud.get_users(db)
+    db.close()
+    return templates.TemplateResponse("users.html", {
+        "request": request,
+        "users": users,
+        "edit_user": user
+    })
+
+
+@app.post("/users/edit/{user_id}")
+async def edit_user(
         user_id: int,
+        email: str = Form(...),
         given_name: str = Form(...),
         surname: str = Form(...),
         city: str = Form(...),
         phone_number: str = Form(...),
-        db: Session = Depends(get_db)
+        profile_description: str = Form(...),
+        password: str = Form(...)
 ):
-    from schemas import UserUpdate
-    user = UserUpdate(given_name=given_name, surname=surname, city=city, phone_number=phone_number)
-    crud.update_user(db, user_id, user)
-    return RedirectResponse("/users", status_code=303)
+    db = SessionLocal()
+    crud.update_user(db, user_id, email, given_name, surname, city, phone_number, profile_description, password)
+    db.close()
+    return RedirectResponse(url="/users", status_code=303)
 
 
-@app.post("/users/delete/{user_id}")
-def delete_user(user_id: int, db: Session = Depends(get_db)):
-    try:
-        crud.delete_user(db, user_id)
-    except Exception as e:
-        print(f"Error deleting user: {e}")
-    return RedirectResponse("/users", status_code=303)
+@app.get("/users/delete/{user_id}")
+async def delete_user(user_id: int):
+    db = SessionLocal()
+    crud.delete_user(db, user_id)
+    db.close()
+    return RedirectResponse(url="/users", status_code=303)
 
-
-# CAREGIVER ROUTES
 
 @app.get("/caregivers", response_class=HTMLResponse)
-def list_caregivers(request: Request, db: Session = Depends(get_db)):
+async def list_caregivers(request: Request):
+    db = SessionLocal()
     caregivers = crud.get_caregivers(db)
     users = crud.get_users(db)
+    db.close()
     return templates.TemplateResponse("caregivers.html", {
         "request": request,
         "caregivers": caregivers,
@@ -117,59 +156,47 @@ def list_caregivers(request: Request, db: Session = Depends(get_db)):
 
 
 @app.post("/caregivers/create")
-def create_caregiver(
-        caregiver_user_id: int = Form(...),
+async def create_caregiver(
+        user_id: int = Form(...),
+        photo_url: str = Form(...),
         gender: str = Form(...),
         caregiving_type: str = Form(...),
-        hourly_rate: float = Form(...),
-        photo: str = Form(""),
-        db: Session = Depends(get_db)
+        hourly_rate: float = Form(...)
 ):
-    from schemas import CaregiverCreate
-    caregiver = CaregiverCreate(
-        caregiver_user_id=caregiver_user_id,
-        gender=gender,
-        caregiving_type=caregiving_type,
-        hourly_rate=Decimal(str(hourly_rate)),
-        photo=photo
-    )
-    crud.create_caregiver(db, caregiver)
-    return RedirectResponse("/caregivers", status_code=303)
+    db = SessionLocal()
+    crud.create_caregiver(db, user_id, photo_url, gender, caregiving_type, hourly_rate)
+    db.close()
+    return RedirectResponse(url="/caregivers", status_code=303)
 
 
-@app.post("/caregivers/update/{caregiver_id}")
-def update_caregiver(
+@app.post("/caregivers/edit/{caregiver_id}")
+async def edit_caregiver(
         caregiver_id: int,
+        photo_url: str = Form(...),
         gender: str = Form(...),
         caregiving_type: str = Form(...),
-        hourly_rate: float = Form(...),
-        db: Session = Depends(get_db)
+        hourly_rate: float = Form(...)
 ):
-    from schemas import CaregiverUpdate
-    caregiver = CaregiverUpdate(
-        gender=gender,
-        caregiving_type=caregiving_type,
-        hourly_rate=Decimal(str(hourly_rate))
-    )
-    crud.update_caregiver(db, caregiver_id, caregiver)
-    return RedirectResponse("/caregivers", status_code=303)
+    db = SessionLocal()
+    crud.update_caregiver(db, caregiver_id, photo_url, gender, caregiving_type, hourly_rate)
+    db.close()
+    return RedirectResponse(url="/caregivers", status_code=303)
 
 
-@app.post("/caregivers/delete/{caregiver_id}")
-def delete_caregiver(caregiver_id: int, db: Session = Depends(get_db)):
-    try:
-        crud.delete_caregiver(db, caregiver_id)
-    except Exception as e:
-        print(f"Error deleting caregiver: {e}")
-    return RedirectResponse("/caregivers", status_code=303)
+@app.get("/caregivers/delete/{caregiver_id}")
+async def delete_caregiver(caregiver_id: int):
+    db = SessionLocal()
+    crud.delete_caregiver(db, caregiver_id)
+    db.close()
+    return RedirectResponse(url="/caregivers", status_code=303)
 
-
-# MEMBER ROUTES
 
 @app.get("/members", response_class=HTMLResponse)
-def list_members(request: Request, db: Session = Depends(get_db)):
+async def list_members(request: Request):
+    db = SessionLocal()
     members = crud.get_members(db)
     users = crud.get_users(db)
+    db.close()
     return templates.TemplateResponse("members.html", {
         "request": request,
         "members": members,
@@ -178,50 +205,41 @@ def list_members(request: Request, db: Session = Depends(get_db)):
 
 
 @app.post("/members/create")
-def create_member(
-        member_user_id: int = Form(...),
-        house_rules: str = Form(""),
-        dependent_description: str = Form(""),
-        db: Session = Depends(get_db)
+async def create_member(
+        user_id: int = Form(...),
+        house_rules: str = Form(...)
 ):
-    from schemas import MemberCreate
-    member = MemberCreate(
-        member_user_id=member_user_id,
-        house_rules=house_rules,
-        dependent_description=dependent_description
-    )
-    crud.create_member(db, member)
-    return RedirectResponse("/members", status_code=303)
+    db = SessionLocal()
+    crud.create_member(db, user_id, house_rules)
+    db.close()
+    return RedirectResponse(url="/members", status_code=303)
 
 
-@app.post("/members/update/{member_id}")
-def update_member(
+@app.post("/members/edit/{member_id}")
+async def edit_member(
         member_id: int,
-        house_rules: str = Form(...),
-        dependent_description: str = Form(...),
-        db: Session = Depends(get_db)
+        house_rules: str = Form(...)
 ):
-    from schemas import MemberUpdate
-    member = MemberUpdate(house_rules=house_rules, dependent_description=dependent_description)
-    crud.update_member(db, member_id, member)
-    return RedirectResponse("/members", status_code=303)
+    db = SessionLocal()
+    crud.update_member(db, member_id, house_rules)
+    db.close()
+    return RedirectResponse(url="/members", status_code=303)
 
 
-@app.post("/members/delete/{member_id}")
-def delete_member(member_id: int, db: Session = Depends(get_db)):
-    try:
-        crud.delete_member(db, member_id)
-    except Exception as e:
-        print(f"Error deleting member: {e}")
-    return RedirectResponse("/members", status_code=303)
+@app.get("/members/delete/{member_id}")
+async def delete_member(member_id: int):
+    db = SessionLocal()
+    crud.delete_member(db, member_id)
+    db.close()
+    return RedirectResponse(url="/members", status_code=303)
 
-
-# JOB ROUTES
 
 @app.get("/jobs", response_class=HTMLResponse)
-def list_jobs(request: Request, db: Session = Depends(get_db)):
+async def list_jobs(request: Request):
+    db = SessionLocal()
     jobs = crud.get_jobs(db)
     members = crud.get_members(db)
+    db.close()
     return templates.TemplateResponse("jobs.html", {
         "request": request,
         "jobs": jobs,
@@ -230,54 +248,44 @@ def list_jobs(request: Request, db: Session = Depends(get_db)):
 
 
 @app.post("/jobs/create")
-def create_job(
-        member_user_id: int = Form(...),
+async def create_job(
+        member_id: int = Form(...),
         required_caregiving_type: str = Form(...),
-        other_requirements: str = Form(""),
-        db: Session = Depends(get_db)
+        other_requirements: str = Form(...)
 ):
-    from schemas import JobCreate
-    job = JobCreate(
-        member_user_id=member_user_id,
-        required_caregiving_type=required_caregiving_type,
-        other_requirements=other_requirements
-    )
-    crud.create_job(db, job)
-    return RedirectResponse("/jobs", status_code=303)
+    db = SessionLocal()
+    crud.create_job(db, member_id, required_caregiving_type, other_requirements)
+    db.close()
+    return RedirectResponse(url="/jobs", status_code=303)
 
 
-@app.post("/jobs/update/{job_id}")
-def update_job(
+@app.post("/jobs/edit/{job_id}")
+async def edit_job(
         job_id: int,
         required_caregiving_type: str = Form(...),
-        other_requirements: str = Form(...),
-        db: Session = Depends(get_db)
+        other_requirements: str = Form(...)
 ):
-    from schemas import JobUpdate
-    job = JobUpdate(
-        required_caregiving_type=required_caregiving_type,
-        other_requirements=other_requirements
-    )
-    crud.update_job(db, job_id, job)
-    return RedirectResponse("/jobs", status_code=303)
+    db = SessionLocal()
+    crud.update_job(db, job_id, required_caregiving_type, other_requirements)
+    db.close()
+    return RedirectResponse(url="/jobs", status_code=303)
 
 
-@app.post("/jobs/delete/{job_id}")
-def delete_job(job_id: int, db: Session = Depends(get_db)):
-    try:
-        crud.delete_job(db, job_id)
-    except Exception as e:
-        print(f"Error deleting job: {e}")
-    return RedirectResponse("/jobs", status_code=303)
+@app.get("/jobs/delete/{job_id}")
+async def delete_job(job_id: int):
+    db = SessionLocal()
+    crud.delete_job(db, job_id)
+    db.close()
+    return RedirectResponse(url="/jobs", status_code=303)
 
-
-# APPOINTMENT ROUTES
 
 @app.get("/appointments", response_class=HTMLResponse)
-def list_appointments(request: Request, db: Session = Depends(get_db)):
+async def list_appointments(request: Request):
+    db = SessionLocal()
     appointments = crud.get_appointments(db)
     caregivers = crud.get_caregivers(db)
     members = crud.get_members(db)
+    db.close()
     return templates.TemplateResponse("appointments.html", {
         "request": request,
         "appointments": appointments,
@@ -287,59 +295,37 @@ def list_appointments(request: Request, db: Session = Depends(get_db)):
 
 
 @app.post("/appointments/create")
-def create_appointment(
-        caregiver_user_id: int = Form(...),
-        member_user_id: int = Form(...),
+async def create_appointment(
+        caregiver_id: int = Form(...),
+        member_id: int = Form(...),
         appointment_date: str = Form(...),
         appointment_time: str = Form(...),
         work_hours: float = Form(...),
-        status: str = Form(...),
-        db: Session = Depends(get_db)
+        status: str = Form(...)
 ):
-    from schemas import AppointmentCreate
-    appointment = AppointmentCreate(
-        caregiver_user_id=caregiver_user_id,
-        member_user_id=member_user_id,
-        appointment_date=datetime.fromisoformat(appointment_date),
-        appointment_time=appointment_time,
-        work_hours=Decimal(str(work_hours)),
-        status=status
-    )
-    crud.create_appointment(db, appointment)
-    return RedirectResponse("/appointments", status_code=303)
+    db = SessionLocal()
+    crud.create_appointment(db, caregiver_id, member_id, appointment_date, appointment_time, work_hours, status)
+    db.close()
+    return RedirectResponse(url="/appointments", status_code=303)
 
 
-@app.post("/appointments/update/{appointment_id}")
-def update_appointment(
+@app.post("/appointments/edit/{appointment_id}")
+async def edit_appointment(
         appointment_id: int,
         appointment_date: str = Form(...),
         appointment_time: str = Form(...),
         work_hours: float = Form(...),
-        status: str = Form(...),
-        db: Session = Depends(get_db)
+        status: str = Form(...)
 ):
-    from schemas import AppointmentUpdate
-    appointment = AppointmentUpdate(
-        appointment_date=datetime.fromisoformat(appointment_date),
-        appointment_time=appointment_time,
-        work_hours=Decimal(str(work_hours)),
-        status=status
-    )
-    crud.update_appointment(db, appointment_id, appointment)
-    return RedirectResponse("/appointments", status_code=303)
+    db = SessionLocal()
+    crud.update_appointment(db, appointment_id, appointment_date, appointment_time, work_hours, status)
+    db.close()
+    return RedirectResponse(url="/appointments", status_code=303)
 
 
-@app.post("/appointments/delete/{appointment_id}")
-def delete_appointment(appointment_id: int, db: Session = Depends(get_db)):
-    try:
-        crud.delete_appointment(db, appointment_id)
-    except Exception as e:
-        print(f"Error deleting appointment: {e}")
-    return RedirectResponse("/appointments", status_code=303)
-
-
-if __name__ == "__main__":
-    import uvicorn
-    import os
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+@app.get("/appointments/delete/{appointment_id}")
+async def delete_appointment(appointment_id: int):
+    db = SessionLocal()
+    crud.delete_appointment(db, appointment_id)
+    db.close()
+    return RedirectResponse(url="/appointments", status_code=303)
