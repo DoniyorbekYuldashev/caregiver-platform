@@ -1,7 +1,6 @@
-# Part 2
-
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text, DateTime
 from sqlalchemy.orm import declarative_base, relationship
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -19,15 +18,15 @@ class User(Base):
     password = Column(String(100), nullable=False)
 
     # Relationships
-    caregiver = relationship("Caregiver", back_populates="user", uselist=False)
-    member = relationship("Member", back_populates="user", uselist=False)
+    caregiver = relationship("Caregiver", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    member = relationship("Member", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
 class Caregiver(Base):
     __tablename__ = 'caregivers'
 
     caregiver_id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False, unique=True)
     photo_url = Column(String(255))
     gender = Column(String(20))
     caregiving_type = Column(String(50), nullable=False)
@@ -35,53 +34,41 @@ class Caregiver(Base):
 
     # Relationships
     user = relationship("User", back_populates="caregiver")
-    appointments = relationship("Appointment", back_populates="caregiver")
+    appointments = relationship("Appointment", back_populates="caregiver", cascade="all, delete-orphan")
 
 
 class Member(Base):
     __tablename__ = 'members'
 
     member_id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False, unique=True)
     house_rules = Column(Text)
 
     # Relationships
     user = relationship("User", back_populates="member")
-    jobs = relationship("Job", back_populates="member")
-    appointments = relationship("Appointment", back_populates="member")
+    jobs = relationship("Job", back_populates="member", cascade="all, delete-orphan")
+    appointments = relationship("Appointment", back_populates="member", cascade="all, delete-orphan")
 
 
 class Job(Base):
     __tablename__ = 'jobs'
 
     job_id = Column(Integer, primary_key=True, autoincrement=True)
-    member_id = Column(Integer, ForeignKey('members.member_id'), nullable=False)
+    member_id = Column(Integer, ForeignKey('members.member_id', ondelete='CASCADE'), nullable=False)
     required_caregiving_type = Column(String(50), nullable=False)
     other_requirements = Column(Text)
+    date_posted = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     member = relationship("Member", back_populates="jobs")
-    applications = relationship("JobApplication", back_populates="job")
-
-
-class JobApplication(Base):
-    __tablename__ = 'job_applications'
-
-    application_id = Column(Integer, primary_key=True, autoincrement=True)
-    caregiver_id = Column(Integer, ForeignKey('caregivers.caregiver_id'), nullable=False)
-    job_id = Column(Integer, ForeignKey('jobs.job_id'), nullable=False)
-    date_applied = Column(Date, nullable=False)
-
-    # Relationships
-    job = relationship("Job", back_populates="applications")
 
 
 class Appointment(Base):
     __tablename__ = 'appointments'
 
     appointment_id = Column(Integer, primary_key=True, autoincrement=True)
-    caregiver_id = Column(Integer, ForeignKey('caregivers.caregiver_id'), nullable=False)
-    member_id = Column(Integer, ForeignKey('members.member_id'), nullable=False)
+    caregiver_id = Column(Integer, ForeignKey('caregivers.caregiver_id', ondelete='CASCADE'), nullable=False)
+    member_id = Column(Integer, ForeignKey('members.member_id', ondelete='CASCADE'), nullable=False)
     appointment_date = Column(Date, nullable=False)
     appointment_time = Column(String(10), nullable=False)
     work_hours = Column(Float, nullable=False)

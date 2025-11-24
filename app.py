@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, HTTPException, Depends
+from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -9,43 +9,27 @@ import os
 from models import Base, User, Caregiver, Member, Job, Appointment
 import crud
 
-# Get database URL from environment
+# Get database URL
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set!")
+    raise ValueError("DATABASE_URL environment variable not set!")
 
-# Create engine
+print("📡 Connecting to database...")
 engine = create_engine(DATABASE_URL)
 
-# Create tables if they don't exist (without dropping)
+# Create tables (only creates if they don't exist - preserves data)
 try:
     Base.metadata.create_all(bind=engine)
-    print("Database tables verified/created!")
+    print("✅ Database tables verified/created!")
 except Exception as e:
-    print(f"Error creating tables: {e}")
+    print(f"❌ Error with database: {e}")
 
-# Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# FastAPI app
 app = FastAPI(title="Caregiver Platform - CSCI 341")
 
-# Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Templates
 templates = Jinja2Templates(directory="templates")
-
-
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 # Home page
 @app.get("/", response_class=HTMLResponse)
@@ -58,7 +42,7 @@ async def home(request: Request):
         jobs_count = db.query(Job).count()
         appointments_count = db.query(Appointment).count()
     except Exception as e:
-        print(f"Error counting: {e}")
+        print(f"⚠️ Error counting: {e}")
         users_count = caregivers_count = members_count = jobs_count = appointments_count = 0
     finally:
         db.close()
@@ -72,6 +56,7 @@ async def home(request: Request):
         "appointments_count": appointments_count
     })
 
+# ============== USERS ROUTES ==============
 
 @app.get("/users", response_class=HTMLResponse)
 async def list_users(request: Request):
@@ -80,27 +65,24 @@ async def list_users(request: Request):
     db.close()
     return templates.TemplateResponse("users.html", {"request": request, "users": users})
 
-
 @app.get("/users/create", response_class=HTMLResponse)
 async def create_user_form(request: Request):
     return templates.TemplateResponse("users.html", {"request": request, "users": [], "show_form": True})
 
-
 @app.post("/users/create")
 async def create_user(
-        email: str = Form(...),
-        given_name: str = Form(...),
-        surname: str = Form(...),
-        city: str = Form(...),
-        phone_number: str = Form(...),
-        profile_description: str = Form(...),
-        password: str = Form(...)
+    email: str = Form(...),
+    given_name: str = Form(...),
+    surname: str = Form(...),
+    city: str = Form(...),
+    phone_number: str = Form(...),
+    profile_description: str = Form(...),
+    password: str = Form(...)
 ):
     db = SessionLocal()
     crud.create_user(db, email, given_name, surname, city, phone_number, profile_description, password)
     db.close()
     return RedirectResponse(url="/users", status_code=303)
-
 
 @app.get("/users/edit/{user_id}", response_class=HTMLResponse)
 async def edit_user_form(request: Request, user_id: int):
@@ -114,23 +96,21 @@ async def edit_user_form(request: Request, user_id: int):
         "edit_user": user
     })
 
-
 @app.post("/users/edit/{user_id}")
 async def edit_user(
-        user_id: int,
-        email: str = Form(...),
-        given_name: str = Form(...),
-        surname: str = Form(...),
-        city: str = Form(...),
-        phone_number: str = Form(...),
-        profile_description: str = Form(...),
-        password: str = Form(...)
+    user_id: int,
+    email: str = Form(...),
+    given_name: str = Form(...),
+    surname: str = Form(...),
+    city: str = Form(...),
+    phone_number: str = Form(...),
+    profile_description: str = Form(...),
+    password: str = Form(...)
 ):
     db = SessionLocal()
     crud.update_user(db, user_id, email, given_name, surname, city, phone_number, profile_description, password)
     db.close()
     return RedirectResponse(url="/users", status_code=303)
-
 
 @app.api_route("/users/delete/{user_id}", methods=["GET", "POST"])
 async def delete_user(user_id: int):
@@ -139,6 +119,7 @@ async def delete_user(user_id: int):
     db.close()
     return RedirectResponse(url="/users", status_code=303)
 
+# ============== CAREGIVERS ROUTES ==============
 
 @app.get("/caregivers", response_class=HTMLResponse)
 async def list_caregivers(request: Request):
@@ -152,34 +133,31 @@ async def list_caregivers(request: Request):
         "users": users
     })
 
-
 @app.post("/caregivers/create")
 async def create_caregiver(
-        user_id: int = Form(...),
-        photo_url: str = Form(...),
-        gender: str = Form(...),
-        caregiving_type: str = Form(...),
-        hourly_rate: float = Form(...)
+    user_id: int = Form(...),
+    photo_url: str = Form(...),
+    gender: str = Form(...),
+    caregiving_type: str = Form(...),
+    hourly_rate: float = Form(...)
 ):
     db = SessionLocal()
     crud.create_caregiver(db, user_id, photo_url, gender, caregiving_type, hourly_rate)
     db.close()
     return RedirectResponse(url="/caregivers", status_code=303)
 
-
 @app.post("/caregivers/edit/{caregiver_id}")
 async def edit_caregiver(
-        caregiver_id: int,
-        photo_url: str = Form(...),
-        gender: str = Form(...),
-        caregiving_type: str = Form(...),
-        hourly_rate: float = Form(...)
+    caregiver_id: int,
+    photo_url: str = Form(...),
+    gender: str = Form(...),
+    caregiving_type: str = Form(...),
+    hourly_rate: float = Form(...)
 ):
     db = SessionLocal()
     crud.update_caregiver(db, caregiver_id, photo_url, gender, caregiving_type, hourly_rate)
     db.close()
     return RedirectResponse(url="/caregivers", status_code=303)
-
 
 @app.api_route("/caregivers/delete/{caregiver_id}", methods=["GET", "POST"])
 async def delete_caregiver(caregiver_id: int):
@@ -188,6 +166,7 @@ async def delete_caregiver(caregiver_id: int):
     db.close()
     return RedirectResponse(url="/caregivers", status_code=303)
 
+# ============== MEMBERS ROUTES ==============
 
 @app.get("/members", response_class=HTMLResponse)
 async def list_members(request: Request):
@@ -201,28 +180,25 @@ async def list_members(request: Request):
         "users": users
     })
 
-
 @app.post("/members/create")
 async def create_member(
-        user_id: int = Form(...),
-        house_rules: str = Form(...)
+    user_id: int = Form(...),
+    house_rules: str = Form(...)
 ):
     db = SessionLocal()
     crud.create_member(db, user_id, house_rules)
     db.close()
     return RedirectResponse(url="/members", status_code=303)
 
-
 @app.post("/members/edit/{member_id}")
 async def edit_member(
-        member_id: int,
-        house_rules: str = Form(...)
+    member_id: int,
+    house_rules: str = Form(...)
 ):
     db = SessionLocal()
     crud.update_member(db, member_id, house_rules)
     db.close()
     return RedirectResponse(url="/members", status_code=303)
-
 
 @app.api_route("/members/delete/{member_id}", methods=["GET", "POST"])
 async def delete_member(member_id: int):
@@ -231,6 +207,7 @@ async def delete_member(member_id: int):
     db.close()
     return RedirectResponse(url="/members", status_code=303)
 
+# ============== JOBS ROUTES ==============
 
 @app.get("/jobs", response_class=HTMLResponse)
 async def list_jobs(request: Request):
@@ -244,30 +221,27 @@ async def list_jobs(request: Request):
         "members": members
     })
 
-
 @app.post("/jobs/create")
 async def create_job(
-        member_id: int = Form(...),
-        required_caregiving_type: str = Form(...),
-        other_requirements: str = Form(...)
+    member_id: int = Form(...),
+    required_caregiving_type: str = Form(...),
+    other_requirements: str = Form(...)
 ):
     db = SessionLocal()
     crud.create_job(db, member_id, required_caregiving_type, other_requirements)
     db.close()
     return RedirectResponse(url="/jobs", status_code=303)
 
-
 @app.post("/jobs/edit/{job_id}")
 async def edit_job(
-        job_id: int,
-        required_caregiving_type: str = Form(...),
-        other_requirements: str = Form(...)
+    job_id: int,
+    required_caregiving_type: str = Form(...),
+    other_requirements: str = Form(...)
 ):
     db = SessionLocal()
     crud.update_job(db, job_id, required_caregiving_type, other_requirements)
     db.close()
     return RedirectResponse(url="/jobs", status_code=303)
-
 
 @app.api_route("/jobs/delete/{job_id}", methods=["GET", "POST"])
 async def delete_job(job_id: int):
@@ -276,6 +250,7 @@ async def delete_job(job_id: int):
     db.close()
     return RedirectResponse(url="/jobs", status_code=303)
 
+# ============== APPOINTMENTS ROUTES ==============
 
 @app.get("/appointments", response_class=HTMLResponse)
 async def list_appointments(request: Request):
@@ -291,35 +266,32 @@ async def list_appointments(request: Request):
         "members": members
     })
 
-
 @app.post("/appointments/create")
 async def create_appointment(
-        caregiver_id: int = Form(...),
-        member_id: int = Form(...),
-        appointment_date: str = Form(...),
-        appointment_time: str = Form(...),
-        work_hours: float = Form(...),
-        status: str = Form(...)
+    caregiver_id: int = Form(...),
+    member_id: int = Form(...),
+    appointment_date: str = Form(...),
+    appointment_time: str = Form(...),
+    work_hours: float = Form(...),
+    status: str = Form(...)
 ):
     db = SessionLocal()
     crud.create_appointment(db, caregiver_id, member_id, appointment_date, appointment_time, work_hours, status)
     db.close()
     return RedirectResponse(url="/appointments", status_code=303)
 
-
 @app.post("/appointments/edit/{appointment_id}")
 async def edit_appointment(
-        appointment_id: int,
-        appointment_date: str = Form(...),
-        appointment_time: str = Form(...),
-        work_hours: float = Form(...),
-        status: str = Form(...)
+    appointment_id: int,
+    appointment_date: str = Form(...),
+    appointment_time: str = Form(...),
+    work_hours: float = Form(...),
+    status: str = Form(...)
 ):
     db = SessionLocal()
     crud.update_appointment(db, appointment_id, appointment_date, appointment_time, work_hours, status)
     db.close()
     return RedirectResponse(url="/appointments", status_code=303)
-
 
 @app.api_route("/appointments/delete/{appointment_id}", methods=["GET", "POST"])
 async def delete_appointment(appointment_id: int):
@@ -327,3 +299,8 @@ async def delete_appointment(appointment_id: int):
     crud.delete_appointment(db, appointment_id)
     db.close()
     return RedirectResponse(url="/appointments", status_code=303)
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

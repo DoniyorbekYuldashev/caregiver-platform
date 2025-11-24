@@ -1,9 +1,7 @@
-# Part 3: CRUD operations
-
 from sqlalchemy.orm import Session
 from models import User, Caregiver, Member, Job, Appointment
-from datetime import datetime
 
+# ============== USER CRUD ==============
 
 def get_users(db: Session):
     return db.query(User).all()
@@ -11,7 +9,7 @@ def get_users(db: Session):
 def get_user(db: Session, user_id: int):
     return db.query(User).filter(User.user_id == user_id).first()
 
-def create_user(db: Session, email: str, given_name: str, surname: str, city: str,
+def create_user(db: Session, email: str, given_name: str, surname: str, city: str, 
                 phone_number: str, profile_description: str, password: str):
     user = User(
         email=email,
@@ -27,7 +25,7 @@ def create_user(db: Session, email: str, given_name: str, surname: str, city: st
     db.refresh(user)
     return user
 
-def update_user(db: Session, user_id: int, email: str, given_name: str, surname: str,
+def update_user(db: Session, user_id: int, email: str, given_name: str, surname: str, 
                 city: str, phone_number: str, profile_description: str, password: str):
     user = db.query(User).filter(User.user_id == user_id).first()
     if user:
@@ -49,6 +47,7 @@ def delete_user(db: Session, user_id: int):
         db.commit()
     return user
 
+# ============== CAREGIVER CRUD ==============
 
 def get_caregivers(db: Session):
     return db.query(Caregiver).all()
@@ -56,7 +55,7 @@ def get_caregivers(db: Session):
 def get_caregiver(db: Session, caregiver_id: int):
     return db.query(Caregiver).filter(Caregiver.caregiver_id == caregiver_id).first()
 
-def create_caregiver(db: Session, user_id: int, photo_url: str, gender: str,
+def create_caregiver(db: Session, user_id: int, photo_url: str, gender: str, 
                      caregiving_type: str, hourly_rate: float):
     caregiver = Caregiver(
         user_id=user_id,
@@ -70,7 +69,7 @@ def create_caregiver(db: Session, user_id: int, photo_url: str, gender: str,
     db.refresh(caregiver)
     return caregiver
 
-def update_caregiver(db: Session, caregiver_id: int, photo_url: str, gender: str,
+def update_caregiver(db: Session, caregiver_id: int, photo_url: str, gender: str, 
                      caregiving_type: str, hourly_rate: float):
     caregiver = db.query(Caregiver).filter(Caregiver.caregiver_id == caregiver_id).first()
     if caregiver:
@@ -89,6 +88,7 @@ def delete_caregiver(db: Session, caregiver_id: int):
         db.commit()
     return caregiver
 
+# ============== MEMBER CRUD ==============
 
 def get_members(db: Session):
     return db.query(Member).all()
@@ -121,6 +121,7 @@ def delete_member(db: Session, member_id: int):
         db.commit()
     return member
 
+# ============== JOB CRUD ==============
 
 def get_jobs(db: Session):
     return db.query(Job).all()
@@ -155,6 +156,7 @@ def delete_job(db: Session, job_id: int):
         db.commit()
     return job
 
+# ============== APPOINTMENT CRUD ==============
 
 def get_appointments(db: Session):
     return db.query(Appointment).all()
@@ -162,9 +164,10 @@ def get_appointments(db: Session):
 def get_appointment(db: Session, appointment_id: int):
     return db.query(Appointment).filter(Appointment.appointment_id == appointment_id).first()
 
-def create_appointment(db: Session, caregiver_id: int, member_id: int,
-                       appointment_date: str, appointment_time: str,
+def create_appointment(db: Session, caregiver_id: int, member_id: int, 
+                       appointment_date: str, appointment_time: str, 
                        work_hours: float, status: str):
+    from datetime import datetime
     appointment = Appointment(
         caregiver_id=caregiver_id,
         member_id=member_id,
@@ -178,8 +181,9 @@ def create_appointment(db: Session, caregiver_id: int, member_id: int,
     db.refresh(appointment)
     return appointment
 
-def update_appointment(db: Session, appointment_id: int, appointment_date: str,
+def update_appointment(db: Session, appointment_id: int, appointment_date: str, 
                        appointment_time: str, work_hours: float, status: str):
+    from datetime import datetime
     appointment = db.query(Appointment).filter(Appointment.appointment_id == appointment_id).first()
     if appointment:
         appointment.appointment_date = datetime.strptime(appointment_date, '%Y-%m-%d').date()

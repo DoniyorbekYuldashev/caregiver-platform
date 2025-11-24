@@ -1,12 +1,13 @@
 # Part 3: Pydantic schemas
 
-from pydantic import BaseModel
+"""Pydantic schemas for request/response validation"""
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 from decimal import Decimal
 
 class UserBase(BaseModel):
-    email: str
+    email: EmailStr
     given_name: str
     surname: str
     city: str
@@ -18,7 +19,7 @@ class UserCreate(UserBase):
     pass
 
 class UserUpdate(BaseModel):
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     given_name: Optional[str] = None
     surname: Optional[str] = None
     city: Optional[str] = None
