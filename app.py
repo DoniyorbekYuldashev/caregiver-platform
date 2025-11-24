@@ -14,16 +14,17 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable not set!")
 
-print("📡 Connecting to database...")
+print("Connecting to database...")
 engine = create_engine(DATABASE_URL)
 
-# Create tables (only creates if they don't exist - preserves data)
-try:
-    Base.metadata.create_all(bind=engine)
-    print("✅ Database tables verified/created!")
-except Exception as e:
-    print(f"❌ Error with database: {e}")
+# Remove these lines after successful deployment!
+print("Dropping old tables...")
+Base.metadata.drop_all(bind=engine)
+print("Dropped")
 
+print("Creating fresh tables with correct schema...")
+Base.metadata.create_all(bind=engine)
+print("Database tables verified/created!")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 app = FastAPI(title="Caregiver Platform - CSCI 341")
