@@ -16,20 +16,6 @@ if not DATABASE_URL:
 print("Connecting to database...")
 engine = create_engine(DATABASE_URL)
 
-# print("Dropping old tables with CASCADE...")
-# try:
-#     with engine.connect() as conn:
-#         conn.execute(text("DROP TABLE IF EXISTS appointments CASCADE"))
-#         conn.execute(text("DROP TABLE IF EXISTS job_applications CASCADE"))
-#         conn.execute(text("DROP TABLE IF EXISTS jobs CASCADE"))
-#         conn.execute(text("DROP TABLE IF EXISTS members CASCADE"))
-#         conn.execute(text("DROP TABLE IF EXISTS caregivers CASCADE"))
-#         conn.execute(text("DROP TABLE IF EXISTS users CASCADE"))
-#         conn.commit()
-#     print("Old tables dropped")
-# except Exception as e:
-#     print(f"Drop error (might be okay): {e}")
-
 Base.metadata.create_all(bind=engine)
 print("Database ready!")
 
