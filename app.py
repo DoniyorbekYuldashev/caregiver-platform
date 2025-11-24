@@ -18,11 +18,16 @@ if not DATABASE_URL:
 # Create engine
 engine = create_engine(DATABASE_URL)
 
-print("Dropping existing tables...")
-Base.metadata.drop_all(bind=engine)
-print("Creating fresh tables...")
-Base.metadata.create_all(bind=engine)
-print("Database tables created successfully!")
+try:
+    print("Dropping existing tables...")
+    Base.metadata.drop_all(bind=engine)
+    print("Tables dropped")
+
+    print("Creating fresh tables...")
+    Base.metadata.create_all(bind=engine)
+    print("Database tables created successfully!")
+except Exception as e:
+    print(f"Error with database: {e}")
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
