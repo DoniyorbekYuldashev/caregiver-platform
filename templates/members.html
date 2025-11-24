@@ -1,93 +1,101 @@
 {% extends "base.html" %}
 
-{% block title %}Members - Caregiver Platform{% endblock %}
+{% block title %}Members{% endblock %}
 
 {% block content %}
-<h2>Member Management</h2>
+<div class="container">
+    <h1>Members</h1>
 
-<button class="btn btn-success" onclick="openModal('createModal')">+ Add New Member</button>
+    {% if not edit_member %}
+    <button onclick="document.getElementById('addForm').style.display='block'" class="btn btn-primary">
+        Add New Member
+    </button>
+    {% endif %}
 
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>House Rules</th>
-            <th>Dependent Info</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for member in members %}
-        <tr>
-            <td>{{ member.member_user_id }}</td>
-            <td>{{ member.user.given_name }} {{ member.user.surname }}</td>
-            <td>{{ member.house_rules[:50] }}...</td>
-            <td>{{ member.dependent_description[:50] }}...</td>
-            <td>
-                <button class="btn btn-primary" onclick="openEditModal({{ member.member_user_id }}, `{{ member.house_rules }}`, `{{ member.dependent_description }}`)">Edit</button>
-                <form action="/members/delete/{{ member.member_user_id }}" method="post" style="display: inline;" onsubmit="return confirmDelete()">
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<!-- Create Modal -->
-<div id="createModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('createModal')">&times;</span>
-        <h3>Add New Member</h3>
-        <form action="/members/create" method="post">
+    <!-- Add Member Form -->
+    <div id="addForm" style="display: {% if show_form %}block{% else %}none{% endif %};">
+        <h2>Add New Member</h2>
+        <form method="post" action="/members/create">
             <div class="form-group">
-                <label>User ID:</label>
-                <select name="member_user_id" required>
-                    <option value="">Select User</option>
+                <label>Select User:</label>
+                <select name="user_id" required>
+                    <option value="">-- Select User --</option>
                     {% for user in users %}
-                    <option value="{{ user.user_id }}">{{ user.user_id }} - {{ user.given_name }} {{ user.surname }}</option>
+                    <option value="{{ user.user_id }}">{{ user.given_name }} {{ user.surname }} ({{ user.email }})</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="form-group">
                 <label>House Rules:</label>
-                <textarea name="house_rules" rows="3"></textarea>
+                <textarea name="house_rules" rows="4" placeholder="Enter house rules..." required></textarea>
             </div>
-            <div class="form-group">
-                <label>Dependent Description:</label>
-                <textarea name="dependent_description" rows="3"></textarea>
-            </div>
-            <button type="submit" class="btn btn-success">Create</button>
+            <button type="submit" class="btn btn-primary">Save Member</button>
+            <button type="button" onclick="document.getElementById('addForm').style.display='none'" class="btn btn-secondary">Cancel</button>
         </form>
     </div>
-</div>
 
-<!-- Edit Modal -->
-<div id="editModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('editModal')">&times;</span>
-        <h3>Edit Member</h3>
-        <form id="editForm" method="post">
+    <!-- Edit Member Form -->
+    {% if edit_member %}
+    <div id="editForm">
+        <h2>Edit Member</h2>
+        <form method="post" action="/members/edit/{{ edit_member.member_id }}">
+            <div class="form-group">
+                <label>User:</label>
+                <input type="text" value="{{ edit_member.user.given_name }} {{ edit_member.user.surname }}" disabled>
+            </div>
             <div class="form-group">
                 <label>House Rules:</label>
-                <textarea name="house_rules" id="edit_rules" rows="3"></textarea>
+                <textarea name="house_rules" rows="4" required>{{ edit_member.house_rules }}</textarea>
             </div>
-            <div class="form-group">
-                <label>Dependent Description:</label>
-                <textarea name="dependent_description" id="edit_desc" rows="3"></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary">Update</button>
+            <button type="submit" class="btn btn-primary">Update Member</button>
+            <a href="/members" class="btn btn-secondary">Cancel</a>
         </form>
     </div>
+    {% endif %}
+
+    <!-- Members List -->
+    <h2>All Members ({{ members|length }})</h2>
+    {% if members %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>City</th>
+                <th>Phone</th>
+                <th>House Rules</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for member in members %}
+            <tr>
+                <td>{{ member.member_id }}</td>
+                <td>{{ member.user.given_name }} {{ member.user.surname }}</td>
+                <td>{{ member.user.email }}</td>
+                <td>{{ member.user.city }}</td>
+                <td>{{ member.user.phone_number }}</td>
+                <td>{{ member.house_rules[:50] }}{% if member.house_rules|length > 50 %}...{% endif %}</td>
+                <td>
+                    <a href="/members/edit/{{ member.member_id }}" class="btn btn-primary">Edit</a>
+                    <a href="/members/delete/{{ member.member_id }}"
+                       onclick="return confirm('Delete this member?')"
+                       class="btn btn-danger">🗑️ Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No members found. Add your first member!</p>
+    {% endif %}
 </div>
 
 <script>
-function openEditModal(id, rules, desc) {
-    document.getElementById('editForm').action = '/members/update/' + id;
-    document.getElementById('edit_rules').value = rules;
-    document.getElementById('edit_desc').value = desc;
-    openModal('editModal');
+// Auto-hide add form when showing list
+if (document.querySelectorAll('table tbody tr').length > 0) {
+    document.getElementById('addForm').style.display = 'none';
 }
 </script>
 {% endblock %}
