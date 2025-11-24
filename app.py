@@ -37,7 +37,7 @@ async def home(request: Request):
         jobs_count = db.query(Job).count()
         appointments_count = db.query(Appointment).count()
     except Exception as e:
-        print(f"⚠️ Error counting: {e}")
+        print(f"Error counting: {e}")
         users_count = caregivers_count = members_count = jobs_count = appointments_count = 0
     finally:
         db.close()
@@ -51,7 +51,7 @@ async def home(request: Request):
         "appointments_count": appointments_count
     })
 
-# ============== USERS ROUTES ==============
+# USERS ROUTES
 
 @app.get("/users", response_class=HTMLResponse)
 async def list_users(request: Request):
@@ -114,7 +114,7 @@ async def delete_user(user_id: int):
     db.close()
     return RedirectResponse(url="/users", status_code=303)
 
-# ============== CAREGIVERS ROUTES ==============
+# CAREGIVERS ROUTES
 
 @app.get("/caregivers", response_class=HTMLResponse)
 async def list_caregivers(request: Request):
@@ -175,7 +175,7 @@ async def delete_caregiver(caregiver_id: int):
     db.close()
     return RedirectResponse(url="/caregivers", status_code=303)
 
-# ============== MEMBERS ROUTES ==============
+# MEMBERS ROUTES
 
 @app.get("/members", response_class=HTMLResponse)
 async def list_members(request: Request):
@@ -230,7 +230,7 @@ async def delete_member(member_id: int):
     db.close()
     return RedirectResponse(url="/members", status_code=303)
 
-# ============== JOBS ROUTES ==============
+# JOBS ROUTES
 
 @app.get("/jobs", response_class=HTMLResponse)
 async def list_jobs(request: Request):
@@ -287,7 +287,7 @@ async def delete_job(job_id: int):
     db.close()
     return RedirectResponse(url="/jobs", status_code=303)
 
-# ============== APPOINTMENTS ROUTES ==============
+# APPOINTMENTS ROUTES
 
 @app.get("/appointments", response_class=HTMLResponse)
 async def list_appointments(request: Request):

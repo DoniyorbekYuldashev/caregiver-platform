@@ -48,7 +48,7 @@ def update_3_2_commission_fee(session):
 
     after = session.query(Caregiver.caregiver_user_id, User.given_name, User.surname, Caregiver.hourly_rate) \
         .join(User).all()
-    print(f"\n✓ Updated {len(caregivers)} caregiver(s)\n\nAfter:")
+    print(f"\nUpdated {len(caregivers)} caregiver(s)\n\nAfter:")
     print_results(['ID', 'Name', 'New Rate'],
                   [[r[0], f"{r[1]} {r[2]}", f"${r[3]:.2f}"] for r in after])
 

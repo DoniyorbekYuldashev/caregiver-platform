@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
 from models import User, Caregiver, Member, Job, Appointment
 
-# ============== USER CRUD ==============
+# USER CRUD
 
 def get_users(db: Session):
     return db.query(User).all()
@@ -47,7 +47,7 @@ def delete_user(db: Session, user_id: int):
         db.commit()
     return user
 
-# ============== CAREGIVER CRUD ==============
+# CAREGIVER CRUD
 
 def get_caregivers(db: Session):
     return db.query(Caregiver).options(joinedload(Caregiver.user)).all()
@@ -88,7 +88,7 @@ def delete_caregiver(db: Session, caregiver_id: int):
         db.commit()
     return caregiver
 
-# ============== MEMBER CRUD ==============
+# MEMBER CRUD
 
 def get_members(db: Session):
     return db.query(Member).options(joinedload(Member.user)).all()
@@ -121,7 +121,7 @@ def delete_member(db: Session, member_id: int):
         db.commit()
     return member
 
-# ============== JOB CRUD ==============
+# JOB CRUD
 
 def get_jobs(db: Session):
     return db.query(Job).options(joinedload(Job.member).joinedload(Member.user)).all()
@@ -156,7 +156,7 @@ def delete_job(db: Session, job_id: int):
         db.commit()
     return job
 
-# ============== APPOINTMENT CRUD ==============
+# APPOINTMENT CRUD
 
 def get_appointments(db: Session):
     return db.query(Appointment).options(
