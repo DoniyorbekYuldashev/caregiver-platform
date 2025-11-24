@@ -1,103 +1,117 @@
 {% extends "base.html" %}
 
-{% block title %}Jobs - Caregiver Platform{% endblock %}
+{% block title %}Jobs{% endblock %}
 
 {% block content %}
-<h2>Job Management</h2>
+<div class="container">
+    <h1>Job Postings</h1>
 
-<button class="btn btn-success" onclick="openModal('createModal')">+ Post New Job</button>
+    {% if not edit_job %}
+    <button onclick="document.getElementById('addForm').style.display='block'" class="btn btn-primary">
+        Post New Job
+    </button>
+    {% endif %}
 
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Posted By</th>
-            <th>Type</th>
-            <th>Requirements</th>
-            <th>Date Posted</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for job in jobs %}
-        <tr>
-            <td>{{ job.job_id }}</td>
-            <td>{{ job.member.user.given_name }} {{ job.member.user.surname }}</td>
-            <td>{{ job.required_caregiving_type }}</td>
-            <td>{{ job.other_requirements[:50] }}...</td>
-            <td>{{ job.date_posted.strftime('%Y-%m-%d') }}</td>
-            <td>
-                <button class="btn btn-primary" onclick="openEditModal({{ job.job_id }}, '{{ job.required_caregiving_type }}', `{{ job.other_requirements }}`)">Edit</button>
-                <form action="/jobs/delete/{{ job.job_id }}" method="post" style="display: inline;" onsubmit="return confirmDelete()">
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<!-- Create Modal -->
-<div id="createModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('createModal')">&times;</span>
-        <h3>Post New Job</h3>
-        <form action="/jobs/create" method="post">
+    <!-- Add Job Form -->
+    <div id="addForm" style="display: {% if show_form %}block{% else %}none{% endif %};">
+        <h2>Post New Job</h2>
+        <form method="post" action="/jobs/create">
             <div class="form-group">
-                <label>Member:</label>
-                <select name="member_user_id" required>
-                    <option value="">Select Member</option>
+                <label>Select Member:</label>
+                <select name="member_id" required>
+                    <option value="">-- Select Member --</option>
                     {% for member in members %}
-                    <option value="{{ member.member_user_id }}">{{ member.user.given_name }} {{ member.user.surname }}</option>
+                    <option value="{{ member.member_id }}">{{ member.user.given_name }} {{ member.user.surname }} ({{ member.user.email }})</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="form-group">
-                <label>Caregiving Type:</label>
+                <label>Required Caregiving Type:</label>
                 <select name="required_caregiving_type" required>
-                    <option value="babysitter">Babysitter</option>
-                    <option value="elderly_care">Elderly Care</option>
-                    <option value="playmate">Playmate</option>
+                    <option value="">-- Select Type --</option>
+                    <option value="Babysitter">Babysitter</option>
+                    <option value="Caregiver">Caregiver</option>
+                    <option value="Special Needs">Special Needs</option>
+                    <option value="Tutor">Tutor</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Requirements:</label>
-                <textarea name="other_requirements" rows="4"></textarea>
+                <label>Other Requirements:</label>
+                <textarea name="other_requirements" rows="4" placeholder="Additional requirements..."></textarea>
             </div>
-            <button type="submit" class="btn btn-success">Post Job</button>
+            <button type="submit" class="btn btn-primary">Post Job</button>
+            <button type="button" onclick="document.getElementById('addForm').style.display='none'" class="btn btn-secondary">Cancel</button>
         </form>
     </div>
-</div>
 
-<!-- Edit Modal -->
-<div id="editModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('editModal')">&times;</span>
-        <h3>Edit Job</h3>
-        <form id="editForm" method="post">
+    <!-- Edit Job Form -->
+    {% if edit_job %}
+    <div id="editForm">
+        <h2>Edit Job</h2>
+        <form method="post" action="/jobs/edit/{{ edit_job.job_id }}">
             <div class="form-group">
-                <label>Caregiving Type:</label>
-                <select name="required_caregiving_type" id="edit_type" required>
-                    <option value="babysitter">Babysitter</option>
-                    <option value="elderly_care">Elderly Care</option>
-                    <option value="playmate">Playmate</option>
+                <label>Member:</label>
+                <input type="text" value="{{ edit_job.member.user.given_name }} {{ edit_job.member.user.surname }}" disabled>
+            </div>
+            <div class="form-group">
+                <label>Required Caregiving Type:</label>
+                <select name="required_caregiving_type" required>
+                    <option value="Babysitter" {% if edit_job.required_caregiving_type == 'Babysitter' %}selected{% endif %}>Babysitter</option>
+                    <option value="Caregiver" {% if edit_job.required_caregiving_type == 'Caregiver' %}selected{% endif %}>Caregiver</option>
+                    <option value="Special Needs" {% if edit_job.required_caregiving_type == 'Special Needs' %}selected{% endif %}>Special Needs</option>
+                    <option value="Tutor" {% if edit_job.required_caregiving_type == 'Tutor' %}selected{% endif %}>Tutor</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Requirements:</label>
-                <textarea name="other_requirements" id="edit_req" rows="4"></textarea>
+                <label>Other Requirements:</label>
+                <textarea name="other_requirements" rows="4">{{ edit_job.other_requirements }}</textarea>
             </div>
-            <button type="submit" class="btn btn-primary">Update</button>
+            <button type="submit" class="btn btn-primary">Update Job</button>
+            <a href="/jobs" class="btn btn-secondary">Cancel</a>
         </form>
     </div>
+    {% endif %}
+
+    <!-- Jobs List -->
+    <h2>All Job Postings ({{ jobs|length }})</h2>
+    {% if jobs %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Posted By</th>
+                <th>Type Needed</th>
+                <th>Requirements</th>
+                <th>Date Posted</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jobs %}
+            <tr>
+                <td>{{ job.job_id }}</td>
+                <td>{{ job.member.user.given_name }} {{ job.member.user.surname }}</td>
+                <td>{{ job.required_caregiving_type }}</td>
+                <td>{{ job.other_requirements[:50] }}{% if job.other_requirements and job.other_requirements|length > 50 %}...{% endif %}</td>
+                <td>{{ job.date_posted.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <a href="/jobs/edit/{{ job.job_id }}" class="btn btn-primary">Edit</a>
+                    <a href="/jobs/delete/{{ job.job_id }}"
+                       onclick="return confirm('Delete this job?')"
+                       class="btn btn-danger">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No jobs posted yet. Post your first job!</p>
+    {% endif %}
 </div>
 
 <script>
-function openEditModal(id, type, req) {
-    document.getElementById('editForm').action = '/jobs/update/' + id;
-    document.getElementById('edit_type').value = type;
-    document.getElementById('edit_req').value = req;
-    openModal('editModal');
+if (document.querySelectorAll('table tbody tr').length > 0) {
+    document.getElementById('addForm').style.display = 'none';
 }
 </script>
 {% endblock %}

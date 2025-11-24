@@ -157,7 +157,6 @@ async def create_caregiver(
     db.close()
     return RedirectResponse(url="/caregivers", status_code=303)
 
-
 @app.get("/caregivers/edit/{caregiver_id}", response_class=HTMLResponse)
 async def edit_caregiver_form(request: Request, caregiver_id: int):
     db = SessionLocal()
@@ -185,6 +184,13 @@ async def edit_caregiver(
     db.close()
     return RedirectResponse(url="/caregivers", status_code=303)
 
+@app.api_route("/caregivers/delete/{caregiver_id}", methods=["GET", "POST"])
+async def delete_caregiver(caregiver_id: int):
+    db = SessionLocal()
+    crud.delete_caregiver(db, caregiver_id)
+    db.close()
+    return RedirectResponse(url="/caregivers", status_code=303)
+
 # ============== MEMBERS ROUTES ==============
 
 @app.get("/members", response_class=HTMLResponse)
@@ -208,6 +214,20 @@ async def create_member(
     crud.create_member(db, user_id, house_rules)
     db.close()
     return RedirectResponse(url="/members", status_code=303)
+
+@app.get("/members/edit/{member_id}", response_class=HTMLResponse)
+async def edit_member_form(request: Request, member_id: int):
+    db = SessionLocal()
+    member = crud.get_member(db, member_id)
+    members = crud.get_members(db)
+    users = crud.get_users(db)
+    db.close()
+    return templates.TemplateResponse("members.html", {
+        "request": request,
+        "members": members,
+        "users": users,
+        "edit_member": member
+    })
 
 @app.post("/members/edit/{member_id}")
 async def edit_member(
@@ -250,6 +270,20 @@ async def create_job(
     crud.create_job(db, member_id, required_caregiving_type, other_requirements)
     db.close()
     return RedirectResponse(url="/jobs", status_code=303)
+
+@app.get("/jobs/edit/{job_id}", response_class=HTMLResponse)
+async def edit_job_form(request: Request, job_id: int):
+    db = SessionLocal()
+    job = crud.get_job(db, job_id)
+    jobs = crud.get_jobs(db)
+    members = crud.get_members(db)
+    db.close()
+    return templates.TemplateResponse("jobs.html", {
+        "request": request,
+        "jobs": jobs,
+        "members": members,
+        "edit_job": job
+    })
 
 @app.post("/jobs/edit/{job_id}")
 async def edit_job(
@@ -298,6 +332,22 @@ async def create_appointment(
     crud.create_appointment(db, caregiver_id, member_id, appointment_date, appointment_time, work_hours, status)
     db.close()
     return RedirectResponse(url="/appointments", status_code=303)
+
+@app.get("/appointments/edit/{appointment_id}", response_class=HTMLResponse)
+async def edit_appointment_form(request: Request, appointment_id: int):
+    db = SessionLocal()
+    appointment = crud.get_appointment(db, appointment_id)
+    appointments = crud.get_appointments(db)
+    caregivers = crud.get_caregivers(db)
+    members = crud.get_members(db)
+    db.close()
+    return templates.TemplateResponse("appointments.html", {
+        "request": request,
+        "appointments": appointments,
+        "caregivers": caregivers,
+        "members": members,
+        "edit_appointment": appointment
+    })
 
 @app.post("/appointments/edit/{appointment_id}")
 async def edit_appointment(

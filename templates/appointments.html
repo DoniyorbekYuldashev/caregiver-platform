@@ -1,138 +1,152 @@
 {% extends "base.html" %}
 
-{% block title %}Appointments - Caregiver Platform{% endblock %}
+{% block title %}Appointments{% endblock %}
 
 {% block content %}
-<h2>Appointment Management</h2>
+<div class="container">
+    <h1>Appointments</h1>
 
-<button class="btn btn-success" onclick="openModal('createModal')">+ Create Appointment</button>
+    {% if not edit_appointment %}
+    <button onclick="document.getElementById('addForm').style.display='block'" class="btn btn-primary">
+        Schedule Appointment
+    </button>
+    {% endif %}
 
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Caregiver</th>
-            <th>Member</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Hours</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for appt in appointments %}
-        <tr>
-            <td>{{ appt.appointment_id }}</td>
-            <td>{{ appt.caregiver.user.given_name }} {{ appt.caregiver.user.surname }}</td>
-            <td>{{ appt.member.user.given_name }} {{ appt.member.user.surname }}</td>
-            <td>{{ appt.appointment_date.strftime('%Y-%m-%d') }}</td>
-            <td>{{ appt.appointment_time }}</td>
-            <td>{{ "%.2f"|format(appt.work_hours) }}</td>
-            <td><span style="padding: 5px 10px; background: {% if appt.status == 'confirmed' %}#28a745{% elif appt.status == 'completed' %}#007bff{% elif appt.status == 'pending' %}#ffc107{% else %}#dc3545{% endif %}; color: white; border-radius: 5px;">{{ appt.status }}</span></td>
-            <td>
-                <button class="btn btn-primary" onclick="openEditModal({{ appt.appointment_id }}, '{{ appt.appointment_date.strftime('%Y-%m-%d') }}', '{{ appt.appointment_time }}', {{ appt.work_hours }}, '{{ appt.status }}')">Edit</button>
-                <form action="/appointments/delete/{{ appt.appointment_id }}" method="post" style="display: inline;" onsubmit="return confirmDelete()">
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<!-- Create Modal -->
-<div id="createModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('createModal')">&times;</span>
-        <h3>Create Appointment</h3>
-        <form action="/appointments/create" method="post">
+    <!-- Add Appointment Form -->
+    <div id="addForm" style="display: {% if show_form %}block{% else %}none{% endif %};">
+        <h2>Schedule New Appointment</h2>
+        <form method="post" action="/appointments/create">
             <div class="form-group">
-                <label>Caregiver:</label>
-                <select name="caregiver_user_id" required>
-                    <option value="">Select Caregiver</option>
+                <label>Select Caregiver:</label>
+                <select name="caregiver_id" required>
+                    <option value="">-- Select Caregiver --</option>
                     {% for caregiver in caregivers %}
-                    <option value="{{ caregiver.caregiver_user_id }}">{{ caregiver.user.given_name }} {{ caregiver.user.surname }} ({{ caregiver.caregiving_type }})</option>
+                    <option value="{{ caregiver.caregiver_id }}">{{ caregiver.user.given_name }} {{ caregiver.user.surname }} - {{ caregiver.caregiving_type }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="form-group">
-                <label>Member:</label>
-                <select name="member_user_id" required>
-                    <option value="">Select Member</option>
+                <label>Select Member:</label>
+                <select name="member_id" required>
+                    <option value="">-- Select Member --</option>
                     {% for member in members %}
-                    <option value="{{ member.member_user_id }}">{{ member.user.given_name }} {{ member.user.surname }}</option>
+                    <option value="{{ member.member_id }}">{{ member.user.given_name }} {{ member.user.surname }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="form-group">
-                <label>Date:</label>
+                <label>Appointment Date:</label>
                 <input type="date" name="appointment_date" required>
             </div>
             <div class="form-group">
-                <label>Time:</label>
+                <label>Appointment Time:</label>
                 <input type="time" name="appointment_time" required>
             </div>
             <div class="form-group">
                 <label>Work Hours:</label>
-                <input type="number" name="work_hours" step="0.5" required>
+                <input type="number" name="work_hours" step="0.5" min="0.5" placeholder="2.0" required>
             </div>
             <div class="form-group">
                 <label>Status:</label>
                 <select name="status" required>
+                    <option value="">-- Select Status --</option>
                     <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
                     <option value="completed">Completed</option>
-                    <option value="declined">Declined</option>
                     <option value="cancelled">Cancelled</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-success">Create</button>
+            <button type="submit" class="btn btn-primary">Schedule Appointment</button>
+            <button type="button" onclick="document.getElementById('addForm').style.display='none'" class="btn btn-secondary">Cancel</button>
         </form>
     </div>
-</div>
 
-<!-- Edit Modal -->
-<div id="editModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('editModal')">&times;</span>
-        <h3>Edit Appointment</h3>
-        <form id="editForm" method="post">
+    <!-- Edit Appointment Form -->
+    {% if edit_appointment %}
+    <div id="editForm">
+        <h2>Edit Appointment</h2>
+        <form method="post" action="/appointments/edit/{{ edit_appointment.appointment_id }}">
             <div class="form-group">
-                <label>Date:</label>
-                <input type="date" name="appointment_date" id="edit_date" required>
+                <label>Caregiver:</label>
+                <input type="text" value="{{ edit_appointment.caregiver.user.given_name }} {{ edit_appointment.caregiver.user.surname }}" disabled>
             </div>
             <div class="form-group">
-                <label>Time:</label>
-                <input type="time" name="appointment_time" id="edit_time" required>
+                <label>Member:</label>
+                <input type="text" value="{{ edit_appointment.member.user.given_name }} {{ edit_appointment.member.user.surname }}" disabled>
+            </div>
+            <div class="form-group">
+                <label>Appointment Date:</label>
+                <input type="date" name="appointment_date" value="{{ edit_appointment.appointment_date }}" required>
+            </div>
+            <div class="form-group">
+                <label>Appointment Time:</label>
+                <input type="time" name="appointment_time" value="{{ edit_appointment.appointment_time }}" required>
             </div>
             <div class="form-group">
                 <label>Work Hours:</label>
-                <input type="number" name="work_hours" id="edit_hours" step="0.5" required>
+                <input type="number" name="work_hours" step="0.5" value="{{ edit_appointment.work_hours }}" required>
             </div>
             <div class="form-group">
                 <label>Status:</label>
-                <select name="status" id="edit_status" required>
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="completed">Completed</option>
-                    <option value="declined">Declined</option>
-                    <option value="cancelled">Cancelled</option>
+                <select name="status" required>
+                    <option value="pending" {% if edit_appointment.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="confirmed" {% if edit_appointment.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                    <option value="completed" {% if edit_appointment.status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="cancelled" {% if edit_appointment.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary">Update</button>
+            <button type="submit" class="btn btn-primary">Update Appointment</button>
+            <a href="/appointments" class="btn btn-secondary">Cancel</a>
         </form>
     </div>
+    {% endif %}
+
+    <!-- Appointments List -->
+    <h2>All Appointments ({{ appointments|length }})</h2>
+    {% if appointments %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Caregiver</th>
+                <th>Member</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Hours</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for appointment in appointments %}
+            <tr>
+                <td>{{ appointment.appointment_id }}</td>
+                <td>{{ appointment.caregiver.user.given_name }} {{ appointment.caregiver.user.surname }}</td>
+                <td>{{ appointment.member.user.given_name }} {{ appointment.member.user.surname }}</td>
+                <td>{{ appointment.appointment_date }}</td>
+                <td>{{ appointment.appointment_time }}</td>
+                <td>{{ appointment.work_hours }}h</td>
+                <td>
+                    <span class="badge badge-{{ appointment.status }}">{{ appointment.status }}</span>
+                </td>
+                <td>
+                    <a href="/appointments/edit/{{ appointment.appointment_id }}" class="btn btn-primary">Edit</a>
+                    <a href="/appointments/delete/{{ appointment.appointment_id }}"
+                       onclick="return confirm('Delete this appointment?')"
+                       class="btn btn-danger">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No appointments scheduled yet.</p>
+    {% endif %}
 </div>
 
 <script>
-function openEditModal(id, date, time, hours, status) {
-    document.getElementById('editForm').action = '/appointments/update/' + id;
-    document.getElementById('edit_date').value = date;
-    document.getElementById('edit_time').value = time;
-    document.getElementById('edit_hours').value = hours;
-    document.getElementById('edit_status').value = status;
-    openModal('editModal');
+if (document.querySelectorAll('table tbody tr').length > 0) {
+    document.getElementById('addForm').style.display = 'none';
 }
 </script>
 {% endblock %}
