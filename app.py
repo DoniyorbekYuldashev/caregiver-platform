@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, text 
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 import os
 from models import Base, User, Caregiver, Member, Job, Appointment
@@ -157,6 +157,21 @@ async def create_caregiver(
     db.close()
     return RedirectResponse(url="/caregivers", status_code=303)
 
+
+@app.get("/caregivers/edit/{caregiver_id}", response_class=HTMLResponse)
+async def edit_caregiver_form(request: Request, caregiver_id: int):
+    db = SessionLocal()
+    caregiver = crud.get_caregiver(db, caregiver_id)
+    caregivers = crud.get_caregivers(db)
+    users = crud.get_users(db)
+    db.close()
+    return templates.TemplateResponse("caregivers.html", {
+        "request": request,
+        "caregivers": caregivers,
+        "users": users,
+        "edit_caregiver": caregiver
+    })
+
 @app.post("/caregivers/edit/{caregiver_id}")
 async def edit_caregiver(
     caregiver_id: int,
@@ -167,13 +182,6 @@ async def edit_caregiver(
 ):
     db = SessionLocal()
     crud.update_caregiver(db, caregiver_id, photo_url, gender, caregiving_type, hourly_rate)
-    db.close()
-    return RedirectResponse(url="/caregivers", status_code=303)
-
-@app.api_route("/caregivers/delete/{caregiver_id}", methods=["GET", "POST"])
-async def delete_caregiver(caregiver_id: int):
-    db = SessionLocal()
-    crud.delete_caregiver(db, caregiver_id)
     db.close()
     return RedirectResponse(url="/caregivers", status_code=303)
 

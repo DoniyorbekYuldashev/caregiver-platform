@@ -50,10 +50,12 @@ def delete_user(db: Session, user_id: int):
 # ============== CAREGIVER CRUD ==============
 
 def get_caregivers(db: Session):
-    return db.query(Caregiver).all()
+    from sqlalchemy.orm import joinedload
+    return db.query(Caregiver).options(joinedload(Caregiver.user)).all()
 
 def get_caregiver(db: Session, caregiver_id: int):
-    return db.query(Caregiver).filter(Caregiver.caregiver_id == caregiver_id).first()
+    from sqlalchemy.orm import joinedload
+    return db.query(Caregiver).options(joinedload(Caregiver.user)).filter(Caregiver.caregiver_id == caregiver_id).first()
 
 def create_caregiver(db: Session, user_id: int, photo_url: str, gender: str, 
                      caregiving_type: str, hourly_rate: float):
@@ -91,10 +93,12 @@ def delete_caregiver(db: Session, caregiver_id: int):
 # ============== MEMBER CRUD ==============
 
 def get_members(db: Session):
-    return db.query(Member).all()
+    from sqlalchemy.orm import joinedload
+    return db.query(Member).options(joinedload(Member.user)).all()
 
 def get_member(db: Session, member_id: int):
-    return db.query(Member).filter(Member.member_id == member_id).first()
+    from sqlalchemy.orm import joinedload
+    return db.query(Member).options(joinedload(Member.user)).filter(Member.member_id == member_id).first()
 
 def create_member(db: Session, user_id: int, house_rules: str):
     member = Member(
@@ -124,7 +128,8 @@ def delete_member(db: Session, member_id: int):
 # ============== JOB CRUD ==============
 
 def get_jobs(db: Session):
-    return db.query(Job).all()
+    from sqlalchemy.orm import joinedload
+    return db.query(Job).options(joinedload(Job.member).joinedload(Member.user)).all()
 
 def get_job(db: Session, job_id: int):
     return db.query(Job).filter(Job.job_id == job_id).first()
@@ -159,7 +164,11 @@ def delete_job(db: Session, job_id: int):
 # ============== APPOINTMENT CRUD ==============
 
 def get_appointments(db: Session):
-    return db.query(Appointment).all()
+    from sqlalchemy.orm import joinedload
+    return db.query(Appointment).options(
+        joinedload(Appointment.caregiver).joinedload(Caregiver.user),
+        joinedload(Appointment.member).joinedload(Member.user)
+    ).all()
 
 def get_appointment(db: Session, appointment_id: int):
     return db.query(Appointment).filter(Appointment.appointment_id == appointment_id).first()
