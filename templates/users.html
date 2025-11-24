@@ -4,11 +4,11 @@
 
 {% block content %}
 <div class="container">
-    <h1>👥 Users</h1>
+    <h1>Users</h1>
 
     {% if not edit_user %}
     <button onclick="document.getElementById('addForm').style.display='block'" class="btn btn-primary">
-        ➕ Add New User
+        Add New User
     </button>
     {% endif %}
 
@@ -111,10 +111,10 @@
                 <td>{{ user.city }}</td>
                 <td>{{ user.phone_number }}</td>
                 <td>
-                    <a href="/users/edit/{{ user.user_id }}" class="btn btn-primary">✏️ Edit</a>
+                    <a href="/users/edit/{{ user.user_id }}" class="btn btn-primary">Edit</a>
                     <a href="/users/delete/{{ user.user_id }}"
                        onclick="return confirm('Delete this user?')"
-                       class="btn btn-danger">🗑️ Delete</a>
+                       class="btn btn-danger">Delete</a>
                 </td>
             </tr>
             {% endfor %}
