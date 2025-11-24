@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text 
 from sqlalchemy.orm import sessionmaker
 import os
 from models import Base, User, Caregiver, Member, Job, Appointment
@@ -17,14 +17,24 @@ if not DATABASE_URL:
 print("Connecting to database...")
 engine = create_engine(DATABASE_URL)
 
-# Remove these lines after successful deployment!
-print("Dropping old tables...")
-Base.metadata.drop_all(bind=engine)
-print("Dropped")
+print("Dropping old tables with CASCADE...")
+try:
+    with engine.connect() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS appointments CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS job_applications CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS jobs CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS members CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS caregivers CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS users CASCADE"))
+        conn.commit()
+    print("Old tables dropped")
+except Exception as e:
+    print(f"Drop error (might be okay): {e}")
 
-print("Creating fresh tables with correct schema...")
+print("Creating fresh tables...")
 Base.metadata.create_all(bind=engine)
-print("Database tables verified/created!")
+print("Database ready!")
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 app = FastAPI(title="Caregiver Platform - CSCI 341")
