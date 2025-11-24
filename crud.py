@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models import User, Caregiver, Member, Job, Appointment
 
 # ============== USER CRUD ==============
@@ -9,7 +9,7 @@ def get_users(db: Session):
 def get_user(db: Session, user_id: int):
     return db.query(User).filter(User.user_id == user_id).first()
 
-def create_user(db: Session, email: str, given_name: str, surname: str, city: str, 
+def create_user(db: Session, email: str, given_name: str, surname: str, city: str,
                 phone_number: str, profile_description: str, password: str):
     user = User(
         email=email,
@@ -25,7 +25,7 @@ def create_user(db: Session, email: str, given_name: str, surname: str, city: st
     db.refresh(user)
     return user
 
-def update_user(db: Session, user_id: int, email: str, given_name: str, surname: str, 
+def update_user(db: Session, user_id: int, email: str, given_name: str, surname: str,
                 city: str, phone_number: str, profile_description: str, password: str):
     user = db.query(User).filter(User.user_id == user_id).first()
     if user:
@@ -50,14 +50,12 @@ def delete_user(db: Session, user_id: int):
 # ============== CAREGIVER CRUD ==============
 
 def get_caregivers(db: Session):
-    from sqlalchemy.orm import joinedload
     return db.query(Caregiver).options(joinedload(Caregiver.user)).all()
 
 def get_caregiver(db: Session, caregiver_id: int):
-    from sqlalchemy.orm import joinedload
     return db.query(Caregiver).options(joinedload(Caregiver.user)).filter(Caregiver.caregiver_id == caregiver_id).first()
 
-def create_caregiver(db: Session, user_id: int, photo_url: str, gender: str, 
+def create_caregiver(db: Session, user_id: int, photo_url: str, gender: str,
                      caregiving_type: str, hourly_rate: float):
     caregiver = Caregiver(
         user_id=user_id,
@@ -71,7 +69,7 @@ def create_caregiver(db: Session, user_id: int, photo_url: str, gender: str,
     db.refresh(caregiver)
     return caregiver
 
-def update_caregiver(db: Session, caregiver_id: int, photo_url: str, gender: str, 
+def update_caregiver(db: Session, caregiver_id: int, photo_url: str, gender: str,
                      caregiving_type: str, hourly_rate: float):
     caregiver = db.query(Caregiver).filter(Caregiver.caregiver_id == caregiver_id).first()
     if caregiver:
@@ -93,11 +91,9 @@ def delete_caregiver(db: Session, caregiver_id: int):
 # ============== MEMBER CRUD ==============
 
 def get_members(db: Session):
-    from sqlalchemy.orm import joinedload
     return db.query(Member).options(joinedload(Member.user)).all()
 
 def get_member(db: Session, member_id: int):
-    from sqlalchemy.orm import joinedload
     return db.query(Member).options(joinedload(Member.user)).filter(Member.member_id == member_id).first()
 
 def create_member(db: Session, user_id: int, house_rules: str):
@@ -128,7 +124,6 @@ def delete_member(db: Session, member_id: int):
 # ============== JOB CRUD ==============
 
 def get_jobs(db: Session):
-    from sqlalchemy.orm import joinedload
     return db.query(Job).options(joinedload(Job.member).joinedload(Member.user)).all()
 
 def get_job(db: Session, job_id: int):
@@ -164,7 +159,6 @@ def delete_job(db: Session, job_id: int):
 # ============== APPOINTMENT CRUD ==============
 
 def get_appointments(db: Session):
-    from sqlalchemy.orm import joinedload
     return db.query(Appointment).options(
         joinedload(Appointment.caregiver).joinedload(Caregiver.user),
         joinedload(Appointment.member).joinedload(Member.user)
